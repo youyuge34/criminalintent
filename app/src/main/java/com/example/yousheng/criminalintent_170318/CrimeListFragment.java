@@ -96,7 +96,7 @@ public class CrimeListFragment extends Fragment {
                     //po记录点击的cardview的位置，返回列表时只需刷新单个cardview无需刷新全部
                     po[0] = position;
                     //将crime实例的id号传递到详情页crimeactivity中，调用活动的方法写在crimeactivity中，方便合作
-                    Intent intent = CrimeActivity.newIntent(getActivity(), crime.getmId());
+                    Intent intent = CrimePagerActivity.newIntent(getActivity(), crime.getmId());
                     startActivity(intent);
                 }
             });

@@ -6,6 +6,13 @@ import android.support.v4.app.Fragment;
 
 import java.util.UUID;
 
+//在第11章节启用此活动，建立新的CrimePagerActivity代替
+//在第11章节启用此活动，建立新的CrimePagerActivity代替
+//在第11章节启用此活动，建立新的CrimePagerActivity代替
+//在第11章节启用此活动，建立新的CrimePagerActivity代替
+//在第11章节启用此活动，建立新的CrimePagerActivity代替
+
+
 public class CrimeActivity extends SingleFragmentActivity {
     @Override
     protected Fragment createFragment() {
