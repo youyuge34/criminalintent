@@ -1,11 +1,27 @@
 package com.example.yousheng.criminalintent_170318;
 
+import android.content.Context;
+import android.content.Intent;
 import android.support.v4.app.Fragment;
+
+import java.util.UUID;
 
 public class CrimeActivity extends SingleFragmentActivity {
     @Override
     protected Fragment createFragment() {
-        return new CrimeFragment();
+//        return new CrimeFragment();
+        UUID crimeId= (UUID) getIntent().getSerializableExtra(EXTRA_CRIME_ID);
+        //用fragment的argument传数据，所以要用以下方法建立fragment实例
+        return CrimeFragment.newInstance(crimeId);
+    }
+
+    private static final String EXTRA_CRIME_ID="crime_from_crimelistfragment_to_crimeactivity";
+
+    //用此方法启动此活动,intent中已接受到crime实例的id信息，从而可以知道是哪个crime，然而需要id信息的是crimefragment
+    public static Intent newIntent(Context context, UUID crimeId){
+        Intent intent=new Intent(context,CrimeActivity.class);
+        intent.putExtra(EXTRA_CRIME_ID,crimeId);
+        return intent;
     }
 
 

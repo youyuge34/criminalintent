@@ -13,6 +13,8 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 
+import java.util.UUID;
+
 /**
  * Created by yousheng on 17/3/18.
  */
@@ -23,12 +25,35 @@ public class CrimeFragment extends Fragment {
     private EditText mTitleField;
     private Button mDateButton;
     private CheckBox mSolvedCheckbox;
+    private static final String ARG_CRIME_ID="argument_from_activity_to_fragment";
+
+    //此方法用于在activity中调用，建立fragment实例，同时将argument传入。
+    //因为fragment的setArgument方法必须在fragment创建后，添加给activity前完成。
+    public static CrimeFragment newInstance(UUID crimeId){
+        Bundle args=new Bundle();
+        args.putSerializable(ARG_CRIME_ID,crimeId);
+
+        CrimeFragment fragment=new CrimeFragment();
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     //fragment的oncreate方法是public的，活动的oncreate方法是protected的，因为托管fragment的activity必须调用他们
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mCrime = new Crime();
+
+        //使用简单的方式获取到 crimelistfragment--->crimeactivity中的intent信息，即crime的id号
+//        UUID crimeId= (UUID) getActivity().getIntent().getSerializableExtra(CrimeActivity.EXTRA_CRIME_ID);
+
+        //使用复杂的fragment的argument参数获取到id号，比起简单方式，相当于多了在crimeactivity里把id放进碎片里再启动碎片这一步
+        //但是这样的话，此fragment就不用知道activity的细节，保持了复用性
+        UUID crimeId= (UUID) getArguments().getSerializable(ARG_CRIME_ID);
+
+
+        //根据id号识别出是哪个crime实例，获取到了之后就能更新此碎片中的信息了
+        mCrime=CrimeLab.get(getActivity()).getCrime(crimeId);
+
     }
 
     @Nullable
@@ -38,6 +63,7 @@ public class CrimeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_crime, container, false);
         mTitleField = (EditText) view.findViewById(R.id.crime_title);
+        mTitleField.setText(mCrime.getmTitle());
         mTitleField.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -62,6 +88,7 @@ public class CrimeFragment extends Fragment {
 
         //初始化checkbox，并监听勾选
         mSolvedCheckbox = (CheckBox) view.findViewById(R.id.crime_solved);
+        mSolvedCheckbox.setChecked(mCrime.ismSolved());
         mSolvedCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {

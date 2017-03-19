@@ -1,14 +1,17 @@
 package com.example.yousheng.criminalintent_170318;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import java.util.List;
@@ -42,17 +45,32 @@ public class CrimeListFragment extends Fragment {
 
         mCrimeAdapter = new CrimeAdapter(list);
         mCrimeRecyclerView.setAdapter(mCrimeAdapter);
+        mCrimeAdapter.notifyDataSetChanged();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        //详情页返回列表页后不会自己刷新，需要通知adapter进行刷新
+//        mCrimeAdapter.notifyDataSetChanged();
+        //优化：通知adpter刷新单个
+        mCrimeAdapter.notifyItemChanged(mCrimeAdapter.po[0]);
+    }
 
     //adapter是控制器对象，从模型层获取数据后，提供recycleview显示，桥梁作用
     //adapter负责：创建必要的viewholder，把每一个itemview的模型层数据绑定给viewholder
     private class CrimeAdapter extends RecyclerView.Adapter<CrimeHolder> {
-
+        //po记录点击的cardview的位置，返回列表时只需刷新单个cardview无需刷新全部
+        final Integer[] po = {new Integer(0)};
         private List<Crime> mCrimes;
+        private int position;
 
         public CrimeAdapter(List<Crime> crimes) {
             mCrimes = crimes;
+        }
+
+        public int getPosition() {
+            return position;
         }
 
         @Override
@@ -60,7 +78,28 @@ public class CrimeListFragment extends Fragment {
         public CrimeHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
             View view = layoutInflater.inflate(R.layout.list_item_crime, null);
-            CrimeHolder holder = new CrimeHolder(view);
+            final CrimeHolder holder = new CrimeHolder(view);
+            holder.mSolvedCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    int position = holder.getAdapterPosition();
+                    Crime crime = mCrimes.get(position);
+                    crime.setmSolved(isChecked);
+                }
+            });
+
+            holder.mCardView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int position = holder.getAdapterPosition();
+                    Crime crime = mCrimes.get(position);
+                    //po记录点击的cardview的位置，返回列表时只需刷新单个cardview无需刷新全部
+                    po[0] = position;
+                    //将crime实例的id号传递到详情页crimeactivity中，调用活动的方法写在crimeactivity中，方便合作
+                    Intent intent = CrimeActivity.newIntent(getActivity(), crime.getmId());
+                    startActivity(intent);
+                }
+            });
             return holder;
         }
 
@@ -84,12 +123,16 @@ public class CrimeListFragment extends Fragment {
         private TextView mTitleTextView;
         private TextView mDateTextView;
         private CheckBox mSolvedCheckBox;
+        private CardView mCardView;
 
         public CrimeHolder(View itemView) {
             super(itemView);
+            mCardView = (CardView) itemView;
             mTitleTextView = (TextView) itemView.findViewById(R.id.list_item_crime_title_textview);
             mDateTextView = (TextView) itemView.findViewById(R.id.list_item_crime_date_textview);
             mSolvedCheckBox = (CheckBox) itemView.findViewById(R.id.list_item_crime_solved_checkbox);
         }
+
+
     }
 }
