@@ -69,6 +69,8 @@ public class CrimeFragment extends Fragment {
             mCrime.setmSolved(isChecked);
             }
         });
+
+        //然后将实例化的view返回给托管的activity
         return view;
     }
 
