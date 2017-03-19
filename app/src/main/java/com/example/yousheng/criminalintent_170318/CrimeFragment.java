@@ -8,15 +8,21 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 
 /**
  * Created by yousheng on 17/3/18.
  */
 
+//fragment作为控制层，要将模型层crime和视图层联系起来
 public class CrimeFragment extends Fragment {
     private Crime mCrime;
     private EditText mTitleField;
+    private Button mDateButton;
+    private CheckBox mSolvedCheckbox;
 
     //fragment的oncreate方法是public的，活动的oncreate方法是protected的，因为托管fragment的activity必须调用他们
     @Override
@@ -49,6 +55,20 @@ public class CrimeFragment extends Fragment {
             }
         });
 
+        //初始化日期按钮
+        mDateButton = (Button) view.findViewById(R.id.crime_date);
+        mDateButton.setText(mCrime.getmDate().toString());
+        mDateButton.setEnabled(false);
+
+        //初始化checkbox，并监听勾选
+        mSolvedCheckbox = (CheckBox) view.findViewById(R.id.crime_solved);
+        mSolvedCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                //将视图层的勾选情况记录进模型层
+            mCrime.setmSolved(isChecked);
+            }
+        });
         return view;
     }
 
