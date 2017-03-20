@@ -4,10 +4,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
@@ -23,16 +27,33 @@ import java.util.List;
 public class CrimeListFragment extends Fragment {
     private RecyclerView mCrimeRecyclerView;
     private CrimeAdapter mCrimeAdapter;
+    private TextView mTextViewIfEmpty;
+    private boolean mSubtitleVisible;
+
+    private static final String SAVED_SUBTITLE="subtitle";
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        //让fragmentManger知道此fragment需要接受选项菜单方法回调
+        setHasOptionsMenu(true);
+    }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+
         View view = inflater.inflate(R.layout.fragment_crime_list, null);
         mCrimeRecyclerView = (RecyclerView) view.findViewById(R.id.crime_recycler_view);
-
+        mTextViewIfEmpty= (TextView) view.findViewById(R.id.text_if_empty);
         //layoutmanger负责在屏幕上定位列表项，还定义了屏幕滚动行为
         LinearLayoutManager manager = new LinearLayoutManager(getActivity());
         mCrimeRecyclerView.setLayoutManager(manager);
+
+        //解决设备旋转后，显示的子标题消失的问题
+        if(savedInstanceState!=null){
+            mSubtitleVisible=savedInstanceState.getBoolean(SAVED_SUBTITLE);
+        }
 
         //绑定适配器，更新UI
         updateUI();
@@ -46,6 +67,50 @@ public class CrimeListFragment extends Fragment {
         mCrimeAdapter = new CrimeAdapter(list);
         mCrimeRecyclerView.setAdapter(mCrimeAdapter);
         mCrimeAdapter.notifyDataSetChanged();
+
+        //为了按back键以后立刻更新subtitle的值，而按向前按钮后activity会重oncreate，实例清空，所以这样没用
+        updateSubtitle();
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_crime_list_menu, menu);
+
+        MenuItem subtitleItem=menu.findItem(R.id.menu_item_show_subtitle);
+        if(mSubtitleVisible){
+            subtitleItem.setTitle(R.string.hide_subtitle);
+        }else {
+            subtitleItem.setTitle(R.string.show_title);
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_item_new_crime:
+                Crime crime = new Crime();
+                CrimeLab.get(getActivity()).addCrime(crime);
+                Intent intent = CrimePagerActivity.newIntent(getActivity(), crime.getmId());
+                startActivity(intent);
+                return true;
+
+            case R.id.menu_item_show_subtitle:
+                mSubtitleVisible=!mSubtitleVisible;
+                getActivity().invalidateOptionsMenu();
+                updateSubtitle();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void updateSubtitle() {
+        int count= CrimeLab.get(getActivity()).getmCrimes().size();
+        String subtitle=""+count+(count<=1?" crime":" crimes");
+        if(!mSubtitleVisible){
+            subtitle=null;
+        }
+        ((AppCompatActivity)getActivity()).getSupportActionBar().setSubtitle(subtitle);
     }
 
     @Override
@@ -54,7 +119,26 @@ public class CrimeListFragment extends Fragment {
         //详情页返回列表页后不会自己刷新，需要通知adapter进行刷新
 //        mCrimeAdapter.notifyDataSetChanged();
         //优化：通知adpter刷新单个
-        mCrimeAdapter.notifyItemChanged(mCrimeAdapter.po[0]);
+//        Log.d("adapter", "onResume: "+mCrimeAdapter.po[0]);
+
+        //若列表数据为空，则让一行提示文字显示在空白界面上
+        if (CrimeLab.get(getActivity()).getmCrimes().isEmpty()) {
+          mCrimeRecyclerView.setVisibility(View.INVISIBLE);
+            mTextViewIfEmpty.setVisibility(View.VISIBLE);
+        }else {
+            mTextViewIfEmpty.setVisibility(View.INVISIBLE);
+            mCrimeRecyclerView.setVisibility(View.VISIBLE);
+        }
+        if (mCrimeAdapter != null) {
+            mCrimeAdapter.notifyItemChanged(mCrimeAdapter.po[0]);
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        //保存值，旋转设备后可以恢复
+        outState.putBoolean(SAVED_SUBTITLE,mSubtitleVisible);
     }
 
     //adapter是控制器对象，从模型层获取数据后，提供recycleview显示，桥梁作用
@@ -78,6 +162,7 @@ public class CrimeListFragment extends Fragment {
         public CrimeHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
             View view = layoutInflater.inflate(R.layout.list_item_crime, null);
+
             final CrimeHolder holder = new CrimeHolder(view);
             holder.mSolvedCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override

@@ -9,12 +9,16 @@ import android.support.v4.app.FragmentManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import java.util.Date;
 import java.util.UUID;
@@ -48,6 +52,7 @@ public class CrimeFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
 
         //使用简单的方式获取到 crimelistfragment--->crimeactivity中的intent信息，即crime的id号
 //        UUID crimeId= (UUID) getActivity().getIntent().getSerializableExtra(CrimeActivity.EXTRA_CRIME_ID);
@@ -115,6 +120,27 @@ public class CrimeFragment extends Fragment {
 
         //然后将实例化的view返回给托管的activity
         return view;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_crime_menu,menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.menu_item_delete_crime:
+
+                //若成功删除此crime，则返回list页面，否则toast提示
+                if(CrimeLab.get(getActivity()).deleteCrime(mCrime)){
+                    getActivity().finish();
+                }else Toast.makeText(getActivity(),"failed",Toast.LENGTH_SHORT);
+
+
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
