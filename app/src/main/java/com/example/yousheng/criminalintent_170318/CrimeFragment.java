@@ -1,8 +1,11 @@
 package com.example.yousheng.criminalintent_170318;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -13,6 +16,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 
+import java.util.Date;
 import java.util.UUID;
 
 /**
@@ -26,6 +30,8 @@ public class CrimeFragment extends Fragment {
     private Button mDateButton;
     private CheckBox mSolvedCheckbox;
     private static final String ARG_CRIME_ID="argument_from_activity_to_fragment";
+    private static final String DIALOG_DATE = "dialog_date";
+    private static final int REQUEST_DATE = 0;
 
     //此方法用于在activity中调用，建立fragment实例，同时将argument传入。
     //因为fragment的setArgument方法必须在fragment创建后，添加给activity前完成。
@@ -81,10 +87,20 @@ public class CrimeFragment extends Fragment {
             }
         });
 
-        //初始化日期按钮
+        //初始化日期按钮，点击则启动DatePickerFragment
         mDateButton = (Button) view.findViewById(R.id.crime_date);
         mDateButton.setText(mCrime.getmDate().toString());
-        mDateButton.setEnabled(false);
+        mDateButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FragmentManager manager = getFragmentManager();
+                DatePickerFragment dialog = DatePickerFragment.newInstance(mCrime.getmDate());
+                //把此碎片设置为datepicker碎片的目标碎片，为了方便返回date数据
+                dialog.setTargetFragment(CrimeFragment.this, REQUEST_DATE);
+                //tag参数表示可唯一识别manger中的dialogfragment
+                dialog.show(manager, DIALOG_DATE);
+            }
+        });
 
         //初始化checkbox，并监听勾选
         mSolvedCheckbox = (CheckBox) view.findViewById(R.id.crime_solved);
@@ -101,4 +117,16 @@ public class CrimeFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_DATE:
+                if (resultCode == Activity.RESULT_OK) {
+                    Date date = (Date) data.getSerializableExtra(DatePickerFragment.EXTRA_DATE);
+                    mCrime.setmDate(date);
+                    mDateButton.setText(date.toString());
+                }
+
+        }
+    }
 }
