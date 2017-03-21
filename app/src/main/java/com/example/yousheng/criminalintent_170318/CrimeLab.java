@@ -51,7 +51,8 @@ public class CrimeLab {
 
     public boolean deleteCrime(Crime crime) {
 //            return mCrimes.remove(crime);
-        return false;
+        int count=mDatabase.delete(CrimeTable.NAME, CrimeTable.Cols.UUID+" = ? ",new String[]{crime.getmId().toString()});
+        return (count!=0);
     }
 
     //需要查询数据库，将每一行转换成crime实例后存入list
