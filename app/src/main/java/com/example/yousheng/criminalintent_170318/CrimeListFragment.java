@@ -89,6 +89,7 @@ public class CrimeListFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_item_new_crime:
+                //生成一个crime实例，此时已经赋予了随机的uuid值
                 Crime crime = new Crime();
                 CrimeLab.get(getActivity()).addCrime(crime);
                 Intent intent = CrimePagerActivity.newIntent(getActivity(), crime.getmId());
@@ -129,9 +130,13 @@ public class CrimeListFragment extends Fragment {
             mTextViewIfEmpty.setVisibility(View.INVISIBLE);
             mCrimeRecyclerView.setVisibility(View.VISIBLE);
         }
-        if (mCrimeAdapter != null) {
-            mCrimeAdapter.notifyItemChanged(mCrimeAdapter.po[0]);
-        }
+
+        //必须重建adapter，因为现在数据更新后，详情页会在结束前把新的数据写入数据库，而crimelist不会自动更新，
+        //因为crimelist来自getcrimes方法，不调用此方法就不会更新。
+        //而返回到list页会调用resume方法，此时通知的adapter里的crimelist数据还是以前的，
+        //所以要用getcrimes方法获取新数据，简历新的adapter，才能刷新出更新后的数据。(数据本质是在数据库中，crimelist
+        //只是一个转换成对象列表的方法，会有延时性）
+        updateUI();
     }
 
     @Override
@@ -147,14 +152,9 @@ public class CrimeListFragment extends Fragment {
         //po记录点击的cardview的位置，返回列表时只需刷新单个cardview无需刷新全部
         final Integer[] po = {new Integer(0)};
         private List<Crime> mCrimes;
-        private int position;
 
         public CrimeAdapter(List<Crime> crimes) {
             mCrimes = crimes;
-        }
-
-        public int getPosition() {
-            return position;
         }
 
         @Override

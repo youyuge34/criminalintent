@@ -9,7 +9,7 @@
     <item
         android:id="@+id/menu_item_show_subtitle"
         android:title="@string/show_title"
-        android:icon="@drawable/ic_menu_subtitle"
+        android:icon="@drawable/ic_menu_eye"
         app:showAsAction="ifRoom|withText"/>
 
 </menu>

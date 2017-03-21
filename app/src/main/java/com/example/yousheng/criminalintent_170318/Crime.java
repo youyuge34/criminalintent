@@ -45,8 +45,14 @@ public class Crime {
     }
 
     public Crime() {
-        //生成唯一的ID号码
+        //随机生成唯一的ID号码
         mId=UUID.randomUUID();
+        mDate=new Date();
+    }
+
+    //另一种构造方法，为了在数据库中查询到的行转换成crime实例需要这样构造，不然uuid为随机生成
+    public Crime(UUID uuid){
+        mId=uuid;
         mDate=new Date();
     }
 }

@@ -122,6 +122,14 @@ public class CrimeFragment extends Fragment {
         return view;
     }
 
+    //更新后的数据仅仅写入了crime模型层实例，并未写入数据库，所以要在暂停时更新数据库
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        CrimeLab.get(getActivity()).updateCrime(mCrime);
+    }
+
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
@@ -143,6 +151,7 @@ public class CrimeFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
+    //datepicker碎片通过调用此碎片中的此方法回传日期数据
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
