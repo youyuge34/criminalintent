@@ -66,4 +66,9 @@ public class Crime {
         mId=uuid;
         mDate=new Date();
     }
+
+    //返回照片的文件名，带有uuid号
+    public String getPhotoFilename(){
+        return "IMG_"+getmId().toString() + ".jpg";
+    }
 }

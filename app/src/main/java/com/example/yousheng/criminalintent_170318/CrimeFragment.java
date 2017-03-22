@@ -7,6 +7,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -24,8 +25,13 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+
+import java.io.File;
 import java.util.Date;
 import java.util.UUID;
 
@@ -41,11 +47,17 @@ public class CrimeFragment extends Fragment {
     private CheckBox mSolvedCheckbox;
     private Button mReportButton;
     private Button mSuspectButton;
+    private ImageButton mPhotoButton;
+    private ImageView mPhotoView;
+
+    //照片的文件存储位置
+    private File mPhotoFile;
 
     private static final String ARG_CRIME_ID = "argument_from_activity_to_fragment";
     private static final String DIALOG_DATE = "dialog_date";
     private static final int REQUEST_DATE = 0;
     private static final int REQUEST_CONTACT = 1;
+    private static final int REQUEST_PHOTO = 2;
 
     //此方法用于在activity中调用，建立fragment实例，同时将argument传入。
     //因为fragment的setArgument方法必须在fragment创建后，添加给activity前完成。
@@ -75,6 +87,8 @@ public class CrimeFragment extends Fragment {
         //根据id号识别出是哪个crime实例，获取到了之后就能更新此碎片中的信息了
         mCrime = CrimeLab.get(getActivity()).getCrime(crimeId);
 
+        //获取照片文件的位置
+        mPhotoFile = CrimeLab.get(getActivity()).getPhotoFile(mCrime);
     }
 
     @Nullable
@@ -158,14 +172,41 @@ public class CrimeFragment extends Fragment {
         //若没有联系人应用，点击第一个按钮就会崩溃，首先可以通过Packagemanger类进行自检
         //设备上安装了哪些组件和activity，packagemanger类都知道，用resolveActivity方法可匹配到
         //符合intent任务的activity，返回resolveinfo
-        PackageManager manger=getActivity().getPackageManager();
-        if(manger.resolveActivity(pickContact,PackageManager.MATCH_DEFAULT_ONLY)==null){
+        PackageManager manger = getActivity().getPackageManager();
+        if (manger.resolveActivity(pickContact, PackageManager.MATCH_DEFAULT_ONLY) == null) {
             mSuspectButton.setEnabled(false);
         }
 
 
+
+        mPhotoButton = (ImageButton) view.findViewById(R.id.crime_camera);
+        //使用相机的intent
+        final Intent captureImage = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        //检查有没有照相软件
+        boolean canTakePhoto = (mPhotoFile != null && captureImage.resolveActivity(manger) != null);
+        mPhotoButton.setEnabled(canTakePhoto);
+        if (canTakePhoto) {
+            //设置相机照片默认的存储位置
+            Uri uri = Uri.fromFile(mPhotoFile);
+            captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+        }
+
+        mPhotoButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivityForResult(captureImage, REQUEST_PHOTO);
+            }
+        });
+
+        mPhotoView = (ImageView) view.findViewById(R.id.crime_photo);
+        updatePhoto();
+
         //然后将实例化的view返回给托管的activity
         return view;
+    }
+
+    private void updatePhoto() {
+        Glide.with(getActivity()).load(mPhotoFile).error(R.drawable.ic_menu_delete).skipMemoryCache(true).into(mPhotoView);
     }
 
     //更新后的数据仅仅写入了crime模型层实例，并未写入数据库，所以要在暂停时更新数据库
@@ -207,32 +248,36 @@ public class CrimeFragment extends Fragment {
                     mCrime.setmDate(date);
                     mDateButton.setText(date.toString());
                 }
+                break;
 
-                //处理按下suspect按钮返回一个联系人数据时候的操作
+            //处理按下suspect按钮返回一个联系人数据时候的操作
             case REQUEST_CONTACT:
-                if(resultCode == Activity.RESULT_OK && data !=null){
-                    Uri contactUri=data.getData();
-                    Log.d("uri", "onActivityResult: "+contactUri.toString());
+                if (resultCode == Activity.RESULT_OK && data != null) {
+                    Uri contactUri = data.getData();
+                    Log.d("uri", "onActivityResult: " + contactUri.toString());
 
                     //下面使用content provider提供联系人信息
-                    String[] queryFields=new String[]{ContactsContract.Contacts.DISPLAY_NAME};
-                    Cursor c=getActivity().getContentResolver().query(contactUri,queryFields,null,null,null);
+                    String[] queryFields = new String[]{ContactsContract.Contacts.DISPLAY_NAME};
+                    Cursor c = getActivity().getContentResolver().query(contactUri, queryFields, null, null, null);
 
-                    try{
+                    try {
 
-                        if (c.getCount()==0){
+                        if (c.getCount() == 0) {
                             return;
                         }
 
                         c.moveToFirst();
-                        String suspect=c.getString(0);
+                        String suspect = c.getString(0);
                         mCrime.setmSuspect(suspect);
                         mSuspectButton.setText(suspect);
-                    }finally {
+                    } finally {
                         c.close();
                     }
+                    break;
                 }
 
+            case REQUEST_PHOTO:
+                updatePhoto();
 
         }
     }

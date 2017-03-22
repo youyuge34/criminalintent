@@ -9,6 +9,8 @@ import com.example.yousheng.criminalintent_170318.database.CrimeDbSchema.CrimeBa
 import com.example.yousheng.criminalintent_170318.database.CrimeDbSchema.CrimeCursorWrapper;
 import com.example.yousheng.criminalintent_170318.database.CrimeDbSchema.CrimeDbSchema.CrimeTable;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -117,5 +119,22 @@ public class CrimeLab {
         contentValues.put(CrimeTable.Cols.SOLVED, crime.ismSolved() ? 1 : 0);
         contentValues.put(CrimeTable.Cols.SUSPECT, crime.getmSuspect());
         return contentValues;
+    }
+
+    //此方法不会创建任何文件，只是返回指向某个具体位置的File对象
+    public File getPhotoFile(Crime crime){
+        File fileDir=new File(mContext.getExternalCacheDir(),crime.getPhotoFilename());
+        if(fileDir==null){
+            return null;
+        }
+        try{
+            if (fileDir.exists()){
+                fileDir.delete();
+            }
+            fileDir.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return fileDir;
     }
 }
