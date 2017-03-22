@@ -14,6 +14,17 @@ public class Crime {
     private Date mDate;
     //crime是否已得到处理
     private boolean mSolved;
+    //后期新加的元素
+
+    public String getmSuspect() {
+        return mSuspect;
+    }
+
+    public void setmSuspect(String mSuspect) {
+        this.mSuspect = mSuspect;
+    }
+
+    private String mSuspect;
 
     public UUID getmId() {
         return mId;

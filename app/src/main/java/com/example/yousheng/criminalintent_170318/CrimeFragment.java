@@ -2,12 +2,18 @@ package com.example.yousheng.criminalintent_170318;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -33,17 +39,21 @@ public class CrimeFragment extends Fragment {
     private EditText mTitleField;
     private Button mDateButton;
     private CheckBox mSolvedCheckbox;
-    private static final String ARG_CRIME_ID="argument_from_activity_to_fragment";
+    private Button mReportButton;
+    private Button mSuspectButton;
+
+    private static final String ARG_CRIME_ID = "argument_from_activity_to_fragment";
     private static final String DIALOG_DATE = "dialog_date";
     private static final int REQUEST_DATE = 0;
+    private static final int REQUEST_CONTACT = 1;
 
     //此方法用于在activity中调用，建立fragment实例，同时将argument传入。
     //因为fragment的setArgument方法必须在fragment创建后，添加给activity前完成。
-    public static CrimeFragment newInstance(UUID crimeId){
-        Bundle args=new Bundle();
-        args.putSerializable(ARG_CRIME_ID,crimeId);
+    public static CrimeFragment newInstance(UUID crimeId) {
+        Bundle args = new Bundle();
+        args.putSerializable(ARG_CRIME_ID, crimeId);
 
-        CrimeFragment fragment=new CrimeFragment();
+        CrimeFragment fragment = new CrimeFragment();
         fragment.setArguments(args);
         return fragment;
     }
@@ -59,11 +69,11 @@ public class CrimeFragment extends Fragment {
 
         //使用复杂的fragment的argument参数获取到id号，比起简单方式，相当于多了在crimeactivity里把id放进碎片里再启动碎片这一步
         //但是这样的话，此fragment就不用知道activity的细节，保持了复用性
-        UUID crimeId= (UUID) getArguments().getSerializable(ARG_CRIME_ID);
+        UUID crimeId = (UUID) getArguments().getSerializable(ARG_CRIME_ID);
 
 
         //根据id号识别出是哪个crime实例，获取到了之后就能更新此碎片中的信息了
-        mCrime=CrimeLab.get(getActivity()).getCrime(crimeId);
+        mCrime = CrimeLab.get(getActivity()).getCrime(crimeId);
 
     }
 
@@ -71,7 +81,7 @@ public class CrimeFragment extends Fragment {
     @Override
     //和activity不同，我们在此方法中实例化fragment视图的布局，然后将实例化的view返回给托管的activity
     //第二个参数为父视图，第三个参数告知布局生成器是否将生成的视图添加给父视图，因为我们将通过活动的代码方式动态添加，所以填false
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(final LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_crime, container, false);
         mTitleField = (EditText) view.findViewById(R.id.crime_title);
         mTitleField.setText(mCrime.getmTitle());
@@ -114,9 +124,45 @@ public class CrimeFragment extends Fragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 //将视图层的勾选情况记录进模型层
-            mCrime.setmSolved(isChecked);
+                mCrime.setmSolved(isChecked);
             }
         });
+
+        //初始化发送suspect信息的按钮,利用隐式intent打开活动
+        mReportButton = (Button) view.findViewById(R.id.crime_report);
+        mReportButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                //指定数据类型
+                intent.setType("text/plain");
+                intent.putExtra(Intent.EXTRA_TEXT, getCrimeReport());
+                intent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.crime_report_subject));
+                startActivity(intent);
+            }
+        });
+
+        //申请读取联系人，选择suspect后返回
+        final Intent pickContact = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+        mSuspectButton = (Button) view.findViewById(R.id.crime_suspect);
+        mSuspectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivityForResult(pickContact, REQUEST_CONTACT);
+            }
+        });
+        if (mCrime.getmSuspect() != null) {
+            mSuspectButton.setText(mCrime.getmSuspect());
+        }
+
+        //若没有联系人应用，点击第一个按钮就会崩溃，首先可以通过Packagemanger类进行自检
+        //设备上安装了哪些组件和activity，packagemanger类都知道，用resolveActivity方法可匹配到
+        //符合intent任务的activity，返回resolveinfo
+        PackageManager manger=getActivity().getPackageManager();
+        if(manger.resolveActivity(pickContact,PackageManager.MATCH_DEFAULT_ONLY)==null){
+            mSuspectButton.setEnabled(false);
+        }
+
 
         //然后将实例化的view返回给托管的activity
         return view;
@@ -133,18 +179,18 @@ public class CrimeFragment extends Fragment {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.fragment_crime_menu,menu);
+        inflater.inflate(R.menu.fragment_crime_menu, menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()){
+        switch (item.getItemId()) {
             case R.id.menu_item_delete_crime:
 
                 //若成功删除此crime，则返回list页面，否则toast提示
-                if(CrimeLab.get(getActivity()).deleteCrime(mCrime)){
+                if (CrimeLab.get(getActivity()).deleteCrime(mCrime)) {
                     getActivity().finish();
-                }else Toast.makeText(getActivity(),"failed",Toast.LENGTH_SHORT);
+                } else Toast.makeText(getActivity(), "failed", Toast.LENGTH_SHORT);
 
 
         }
@@ -162,6 +208,55 @@ public class CrimeFragment extends Fragment {
                     mDateButton.setText(date.toString());
                 }
 
+                //处理按下suspect按钮返回一个联系人数据时候的操作
+            case REQUEST_CONTACT:
+                if(resultCode == Activity.RESULT_OK && data !=null){
+                    Uri contactUri=data.getData();
+                    Log.d("uri", "onActivityResult: "+contactUri.toString());
+
+                    //下面使用content provider提供联系人信息
+                    String[] queryFields=new String[]{ContactsContract.Contacts.DISPLAY_NAME};
+                    Cursor c=getActivity().getContentResolver().query(contactUri,queryFields,null,null,null);
+
+                    try{
+
+                        if (c.getCount()==0){
+                            return;
+                        }
+
+                        c.moveToFirst();
+                        String suspect=c.getString(0);
+                        mCrime.setmSuspect(suspect);
+                        mSuspectButton.setText(suspect);
+                    }finally {
+                        c.close();
+                    }
+                }
+
+
         }
+    }
+
+    //使用带占位符的格式化字符串，生成四段字符串信息并拼接成一个完整的消息
+    private String getCrimeReport() {
+        String solvedString = null;
+        if (mCrime.ismSolved()) {
+            solvedString = getString(R.string.crime_report_solved);
+        } else {
+            solvedString = getString(R.string.crime_report_unsolved);
+        }
+
+        String dateFormat = "EEE, MMM dd";
+        String dateString = DateFormat.format(dateFormat, mCrime.getmDate()).toString();
+
+        String suspect = mCrime.getmSuspect();
+        if (suspect == null) {
+            suspect = getString(R.string.crime_report_no_suspect);
+        } else {
+            suspect = getString(R.string.crime_report_suspect, suspect);
+        }
+        String report = getString(R.string.crime_report, mCrime.getmTitle(), dateString, solvedString, suspect);
+
+        return report;
     }
 }
