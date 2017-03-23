@@ -30,6 +30,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import java.io.File;
 import java.util.Date;
@@ -88,7 +89,9 @@ public class CrimeFragment extends Fragment {
         mCrime = CrimeLab.get(getActivity()).getCrime(crimeId);
 
         //获取照片文件的位置
+
         mPhotoFile = CrimeLab.get(getActivity()).getPhotoFile(mCrime);
+        Log.d("getPhotoFile","onCreate: "+mPhotoFile.exists());
     }
 
     @Nullable
@@ -206,7 +209,12 @@ public class CrimeFragment extends Fragment {
     }
 
     private void updatePhoto() {
-        Glide.with(getActivity()).load(mPhotoFile).error(R.drawable.ic_menu_delete).skipMemoryCache(true).into(mPhotoView);
+        Glide.with(getActivity()).load(mPhotoFile)
+                .error(R.drawable.ic_menu_delete)
+                //禁止自动缓存，否则第二次拍照时不出现新的图片，glide是根据uri值判断是否缓存的
+                .skipMemoryCache(true)
+                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                .into(mPhotoView);
     }
 
     //更新后的数据仅仅写入了crime模型层实例，并未写入数据库，所以要在暂停时更新数据库
